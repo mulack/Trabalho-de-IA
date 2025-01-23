@@ -1,7 +1,6 @@
 import random
 import time
 import tracemalloc
-import heapq  # Usado para manter a lista de nós abertos ordenada
 
 # Função para gerar um estado inicial aleatório
 def estado_inicial(n):
@@ -29,12 +28,12 @@ def movimentos_possiveis(estado, posicao_vazia, n):
 
 
 # Heurística 1 - Mede quantas pecas estão incorretos em relação ao objetivo, penalidade +3 para distâncias > 2, punindo movimentos longos
-def heuristic_1(state, goal):
+def heuristic_1(state, final):
     count = 0
     for i in range(len(state)):
-        if state[i] != goal[i] and state[i] != '-':
+        if state[i] != final[i] and state[i] != '-':
             # Distância da peça em relação ao seu objetivo
-            target_index = goal.index(state[i])
+            target_index = final.index(state[i])
             distance = abs(i - target_index)
             
             # o "-" se mover no maximo 2 casas
@@ -46,27 +45,28 @@ def heuristic_1(state, goal):
 
 
 # Heurística 2 - Distância Manhattan dos elementos incorretos
-def heuristic_2(state, goal):
+def heuristic_2(state, final):
     total_dist = 0
     for i, element in enumerate(state):
-        if element != goal[i] and element != '-':
-            target_index = goal.index(element)
+        if element != final[i] and element != '-':
+            target_index = final.index(element)
             total_dist += abs(i - target_index)
     return total_dist
 
 
 # A* recebendo qualquer heuristic
 def A_star(estado_inicial, n, heuristic):
-    goal = ['B'] * n + ['-'] + ['A'] * n  # GOAL
-    start = estado_inicial # INICIAL
-    open_list = [] # Lista com prioridade
-    heapq.heappush(open_list, (0, start, 0))  # (custo, estado, custo heuristica)
+    final = ['B'] * n + ['-'] + ['A'] * n  # GOAL
+    start = estado_inicial  # INICIAL
+    open_list = [(0, start, 0)]  # Lista com (custo, estado, custo heuristica)
     dicionario_caminho = {}
     g_costs = {tuple(start): 0}  # Dicionario de custos g (Tupla como chave)
-    f_costs = {tuple(start): heuristic(start, goal)}  # Dicionario de custos f (g + h)
+    f_costs = {tuple(start): heuristic(start, final)}  # Dicionario de custos f (g + h)
 
     while open_list:
-        f, current_state, g = heapq.heappop(open_list)  # Pega o estado atual
+        open_list.sort(key=lambda x: x[0])  # Ordena pelo custo f (x[0])
+        f, current_state, g = open_list.pop(0)  # Pega o estado com menor custo f
+        print(open_list)
         if estado_meta(current_state, n):
             path = []
             while tuple(current_state) in dicionario_caminho:  # Usando tupla como chave no caminho
@@ -77,69 +77,65 @@ def A_star(estado_inicial, n, heuristic):
             return path  # Retorna o caminho para o objetivo
 
         posicao_vazia = current_state.index('-')  # Pega a posição do espaço vazio
-        movimentos = movimentos_possiveis(current_state, posicao_vazia, n)  # Pega TODOS os movimentos possiveis
+        movimentos = movimentos_possiveis(current_state, posicao_vazia, n)  #* Pega TODOS os movimentos possiveis
 
-        for movimento in movimentos: #* Realiza os movimentos 
+        for movimento in movimentos:  # Realiza os movimentos 
             g_new = g_costs[tuple(current_state)] + 1  # Custo g (movimento de custo 1)
-            h_new = heuristic(movimento, goal)  # Pega os heuristico
+            h_new = heuristic(movimento, final)  # Pega o heurístico
             f_new = g_new + h_new  # Custo f
 
             if tuple(movimento) not in g_costs or g_new < g_costs[tuple(movimento)]:
                 dicionario_caminho[tuple(movimento)] = current_state
                 g_costs[tuple(movimento)] = g_new
                 f_costs[tuple(movimento)] = f_new
-                heapq.heappush(open_list, (f_new, movimento, g_new))  # Adiciona o novo estado a LISTA
+                open_list.append((f_new, movimento, g_new))  # adiciona o novo estado
 
     return None  # Caso não encontre solução
 
 
+"""
+Exemplo de como cada Heuristica funciona
+H1
+[(8, ['A', 'B', 'A', 'B', '-'], 1), 
+(11, ['A', '-', 'A', 'B', 'B'], 1)]
+[(7, ['A', 'B', 'B', 'A', '-'], 2),
+h2
+[(8, ['A', 'B', 'A', 'B', '-'], 1), 
+(12, ['A', '-', 'A', 'B', 'B'], 1)]
+[(7, ['A', 'B', 'B', 'A', '-'], 2), 
+"""
+
+
 # Como usar
-n = 30  # Número de A's e B's
+n = 2  # Número de A's e B's
 estado = estado_inicial(n)
 
-# Exemplo de estado de teste
-teste = ['B', 'A', 'B', 'A', 'A', '-', 'A', 'B', 'B']  # Estado de teste
 teste = estado
 print("Estado Inicial:", estado)
 
-###############
 
-# Início da medição de tempo e memória
-inicio = time.time()
-tracemalloc.start()
+inicio = time.time(),tracemalloc.start()# Início da medição de tempo e memória
 
-# Algoritmo A* com a Heurística 1 (quantidade de peças fora de posição)
-resposta_heuristica_1 = A_star(teste, n, heuristic_1)
+resposta_heuristica_1 = A_star(teste, n, heuristic_1)#* Algoritmo A* com a Heurística 1
 print("\nSolução com Heurística 1 (Quantidade de peças fora de posição):")
 print(len(resposta_heuristica_1))
 
-# Fim da medição de tempo e memória
-fim = time.time()
-memoria_usada = tracemalloc.get_traced_memory()
-tracemalloc.stop()
 
-# Exibe os resultados
-print("Tempo de execução:", round(fim - inicio, 4), "segundos")
+fim = time.time(),memoria_usada = tracemalloc.get_traced_memory(),tracemalloc.stop()# Fim da medição de tempo e memória
+
+print("Tempo de execução:", round(fim - inicio, 4), "segundos")# Exibe os resultados
 print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
-###############
+#!##############
 
-# Início da medição de tempo e memória
-inicio = time.time()
-tracemalloc.start()
+inicio = time.time(),tracemalloc.start()# Início da medição de tempo e memória
 
-# Algoritmo A* com a Heurística 2 (Distância Manhattan)
-resposta_heuristica_2 = A_star(teste, n, heuristic_2)
+resposta_heuristica_2 = A_star(teste, n, heuristic_2)#* Algoritmo A* com a Heurística 2 (Distância Manhattan)
 print("\nSolução com Heurística 2 (Distância Manhattan):")
 print(len(resposta_heuristica_2))
 
-# Fim da medição de tempo e memória
-fim = time.time()
-memoria_usada = tracemalloc.get_traced_memory()
-tracemalloc.stop()
+fim = time.time(),memoria_usada = tracemalloc.get_traced_memory(),tracemalloc.stop()# Fim da medição de tempo e memória
 
-# Exibe os resultados
-print("Tempo de execução:", round(fim - inicio, 4), "segundos")
+print("Tempo de execução:", round(fim - inicio, 4), "segundos")# Exibe os resultados
 print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
-###############
