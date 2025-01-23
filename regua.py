@@ -1,95 +1,145 @@
 import random
 import time
-import tracemalloc #talvez ?
+import tracemalloc
+import heapq  # Usado para manter a lista de nós abertos ordenada
 
-#pega um valor n e cria n A'd e n B's, dps embaralha
+# Função para gerar um estado inicial aleatório
 def estado_inicial(n):
-    estado = ['B'] * n + ['A'] * n + ['-']
-    random.shuffle(estado)  
+    estado = ['B'] * n + ['A'] * n + ['-']  # Cria n 'A's, n 'B's e o espaço vazio '-'
+    random.shuffle(estado)  # Embaralha o estado
     return estado
 
-#verifica se o estado é o estado meta
-def estado_meta(estado, n):
-    estado_aux = [x for x in estado if x != '-'] #para verificar se o estado é meta sem o "-" interferir
-    return estado_aux == ['B'] * n + ['A'] * n
 
-#retorna os movimentos possiveis
+# Função para verificar se o estado é o estado meta
+def estado_meta(estado, n):
+    estado_aux = [x for x in estado if x != '-']  # Ignora o '-'
+    return estado_aux == ['B'] * n + ['A'] * n  # Verifica se o estado é o meta
+
+
+# Função que retorna os movimentos possíveis
 def movimentos_possiveis(estado, posicao_vazia, n):
     movimentos = []
-    for i in range(len(estado)): #percorre o vetor
-        # se o i não for a posicão do "-" e a distancia entre o i e a vazia (valor abs(positivo)) 
-        # não for maior que n, então o movimento de troca é possivel
-        if i != posicao_vazia and abs(i - posicao_vazia) <= n: 
+    for i in range(len(estado)):  # Percorre o vetor
+        # Se a posição i não for a do "-", e a distância entre i e a posição vazia não for maior que n, o movimento é possível
+        if i != posicao_vazia and abs(i - posicao_vazia) <= n:
             novo_estado = estado[:]
-            novo_estado[posicao_vazia], novo_estado[i] = novo_estado[i], '-' #faz a troca
-            movimentos.append(novo_estado) #adciona na lista dos movimentos
+            novo_estado[posicao_vazia], novo_estado[i] = novo_estado[i], '-'  # Troca as posições
+            movimentos.append(novo_estado)  # Adiciona o novo estado à lista
     return movimentos
 
 
-#IDDFS
-
-def busca_profundidade_l(nos, estado, profundidade_maxima, n, visitados=None):
-    print("Visitando: ", estado)
-    if visitados is None: #primeira vez que a função é chamada, cria o conjunto de visitados
-        visitados = set()
-
-    estado_str = ''.join(estado)
-    if estado_str in visitados:
-        return None, nos  # Para não repetir estados que ja foram visitados
-    
-    nos += 1 #adciona 1 no contador de nos
-    if estado_meta(estado, n):
-        return estado, nos  # Verirfica se é meta
-
-    if profundidade_maxima == 0:
-        return None, nos  # Profundidade atingida
-
-    visitados.add(estado_str) #adciona o estado atual no conjunto de visitados
-    posicao_vazia = estado.index('-')
-    movimentos = movimentos_possiveis(estado, posicao_vazia, n) #pega os movimentos possiveis
-
-    print("Movimentos possiveis: ")
-    for s in movimentos:
-        print(s)
-
-    for movimento in movimentos:
-        #chama recursivamente a função para cada movimento possivel, garantindo que não vai passar do limite de profundidade
-        resultado, nos = busca_profundidade_l(nos, movimento, profundidade_maxima - 1, n, visitados)
-        if resultado is not None:
-            return resultado, nos
-
-    return None, nos
-
-def busca_profundidade_iterativa(estado_inicial, n):
-    #profundidade inicial do loop, para setar valores
-    profundidade = 0
-    while True:
-        print(f"Tentando profundidade: {profundidade}")
-        total_nos = 0
-        resultado, total_nos = busca_profundidade_l(total_nos, estado_inicial, profundidade, n)
-        if resultado is not None:
-            print(f"Solução encontrada na profundidade: {profundidade}")
-            return resultado, total_nos
-        profundidade += 1
+# Heurística 1 - Mede quantas pecas estão incorretos em relação ao objetivo, penalidade +3 para distâncias > 2, punindo movimentos longos
+def heuristic_1(state, goal):
+    count = 0
+    for i in range(len(state)):
+        if state[i] != goal[i] and state[i] != '-':
+            # Distância da peça em relação ao seu objetivo
+            target_index = goal.index(state[i])
+            distance = abs(i - target_index)
+            
+            # o "-" se mover no maximo 2 casas
+            if distance > 2:
+                count += 3  # Penaliza com +3
+            else:
+                count += distance  # Movimento normal (1 ou 2 casas)
+    return count
 
 
-#como usar
-n = 2
+# Heurística 2 - Distância Manhattan dos elementos incorretos
+def heuristic_2(state, goal):
+    total_dist = 0
+    for i, element in enumerate(state):
+        if element != goal[i] and element != '-':
+            target_index = goal.index(element)
+            total_dist += abs(i - target_index)
+    return total_dist
+
+
+# A* recebendo qualquer heuristic
+def A_star(estado_inicial, n, heuristic):
+    goal = ['B'] * n + ['-'] + ['A'] * n  # GOAL
+    start = estado_inicial # INICIAL
+    open_list = [] # Lista com prioridade
+    heapq.heappush(open_list, (0, start, 0))  # (custo, estado, custo heuristica)
+    dicionario_caminho = {}
+    g_costs = {tuple(start): 0}  # Dicionario de custos g (Tupla como chave)
+    f_costs = {tuple(start): heuristic(start, goal)}  # Dicionario de custos f (g + h)
+
+    while open_list:
+        f, current_state, g = heapq.heappop(open_list)  # Pega o estado atual
+        if estado_meta(current_state, n):
+            path = []
+            while tuple(current_state) in dicionario_caminho:  # Usando tupla como chave no caminho
+                path.append(current_state)
+                current_state = dicionario_caminho[tuple(current_state)]  # Usando a tupla como chave
+            path.append(estado_inicial)
+            path.reverse()
+            return path  # Retorna o caminho para o objetivo
+
+        posicao_vazia = current_state.index('-')  # Pega a posição do espaço vazio
+        movimentos = movimentos_possiveis(current_state, posicao_vazia, n)  # Pega TODOS os movimentos possiveis
+
+        for movimento in movimentos: #* Realiza os movimentos 
+            g_new = g_costs[tuple(current_state)] + 1  # Custo g (movimento de custo 1)
+            h_new = heuristic(movimento, goal)  # Pega os heuristico
+            f_new = g_new + h_new  # Custo f
+
+            if tuple(movimento) not in g_costs or g_new < g_costs[tuple(movimento)]:
+                dicionario_caminho[tuple(movimento)] = current_state
+                g_costs[tuple(movimento)] = g_new
+                f_costs[tuple(movimento)] = f_new
+                heapq.heappush(open_list, (f_new, movimento, g_new))  # Adiciona o novo estado a LISTA
+
+    return None  # Caso não encontre solução
+
+
+# Como usar
+n = 30  # Número de A's e B's
 estado = estado_inicial(n)
-teste = ['A', 'B', '-', 'B', 'A']
+
+# Exemplo de estado de teste
+teste = ['B', 'A', 'B', 'A', 'A', '-', 'A', 'B', 'B']  # Estado de teste
+teste = estado
 print("Estado Inicial:", estado)
 
+###############
+
+# Início da medição de tempo e memória
 inicio = time.time()
 tracemalloc.start()
-resposta, quantia_nos = busca_profundidade_iterativa(teste, n)
+
+# Algoritmo A* com a Heurística 1 (quantidade de peças fora de posição)
+resposta_heuristica_1 = A_star(teste, n, heuristic_1)
+print("\nSolução com Heurística 1 (Quantidade de peças fora de posição):")
+print(len(resposta_heuristica_1))
+
+# Fim da medição de tempo e memória
 fim = time.time()
 memoria_usada = tracemalloc.get_traced_memory()
 tracemalloc.stop()
 
-
-print("Solução encontrada:", resposta)
-print("Quantidade de nós visitados:", quantia_nos)
+# Exibe os resultados
 print("Tempo de execução:", round(fim - inicio, 4), "segundos")
 print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
+###############
 
+# Início da medição de tempo e memória
+inicio = time.time()
+tracemalloc.start()
+
+# Algoritmo A* com a Heurística 2 (Distância Manhattan)
+resposta_heuristica_2 = A_star(teste, n, heuristic_2)
+print("\nSolução com Heurística 2 (Distância Manhattan):")
+print(len(resposta_heuristica_2))
+
+# Fim da medição de tempo e memória
+fim = time.time()
+memoria_usada = tracemalloc.get_traced_memory()
+tracemalloc.stop()
+
+# Exibe os resultados
+print("Tempo de execução:", round(fim - inicio, 4), "segundos")
+print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
+
+###############
