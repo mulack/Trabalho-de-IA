@@ -66,7 +66,6 @@ def A_star(estado_inicial, n, heuristic):
     while open_list:
         open_list.sort(key=lambda x: x[0])  # Ordena pelo custo f (x[0])
         f, current_state, g = open_list.pop(0)  # Pega o estado com menor custo f
-        print(open_list)
         if estado_meta(current_state, n):
             path = []
             while tuple(current_state) in dicionario_caminho:  # Usando tupla como chave no caminho
@@ -84,7 +83,7 @@ def A_star(estado_inicial, n, heuristic):
             h_new = heuristic(movimento, final)  # Pega o heurístico
             f_new = g_new + h_new  # Custo f
 
-            if tuple(movimento) not in g_costs or g_new < g_costs[tuple(movimento)]:
+            if (tuple(movimento) not in g_costs) or (g_new < g_costs[tuple(movimento)]):
                 dicionario_caminho[tuple(movimento)] = current_state
                 g_costs[tuple(movimento)] = g_new
                 f_costs[tuple(movimento)] = f_new
@@ -114,27 +113,27 @@ teste = estado
 print("Estado Inicial:", estado)
 
 
-inicio = time.time(),tracemalloc.start()# Início da medição de tempo e memória
+inicio = time.time();tracemalloc.start()# Início da medição de tempo e memória
 
 resposta_heuristica_1 = A_star(teste, n, heuristic_1)#* Algoritmo A* com a Heurística 1
 print("\nSolução com Heurística 1 (Quantidade de peças fora de posição):")
 print(len(resposta_heuristica_1))
 
 
-fim = time.time(),memoria_usada = tracemalloc.get_traced_memory(),tracemalloc.stop()# Fim da medição de tempo e memória
+fim = time.time();memoria_usada = tracemalloc.get_traced_memory();tracemalloc.stop();# Fim da medição de tempo e memória
 
 print("Tempo de execução:", round(fim - inicio, 4), "segundos")# Exibe os resultados
 print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
 #!##############
 
-inicio = time.time(),tracemalloc.start()# Início da medição de tempo e memória
+inicio = time.time();tracemalloc.start()# Início da medição de tempo e memória
 
 resposta_heuristica_2 = A_star(teste, n, heuristic_2)#* Algoritmo A* com a Heurística 2 (Distância Manhattan)
 print("\nSolução com Heurística 2 (Distância Manhattan):")
 print(len(resposta_heuristica_2))
 
-fim = time.time(),memoria_usada = tracemalloc.get_traced_memory(),tracemalloc.stop()# Fim da medição de tempo e memória
+fim = time.time();memoria_usada = tracemalloc.get_traced_memory();tracemalloc.stop();# Fim da medição de tempo e memória
 
 print("Tempo de execução:", round(fim - inicio, 4), "segundos")# Exibe os resultados
 print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
