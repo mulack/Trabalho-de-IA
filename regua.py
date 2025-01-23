@@ -38,19 +38,15 @@ def busca_profundidade_l(nos, estado, profundidade_maxima, n, visitados=None):
         return None, nos  # Para não repetir estados que ja foram visitados
     
     nos += 1 #adciona 1 no contador de nos
+    visitados.add(estado_str) #adciona o estado atual no conjunto de visitados
     if estado_meta(estado, n):
-        return estado, nos  # Verirfica se é meta
+        return estado, nos # Verirfica se é meta
 
     if profundidade_maxima == 0:
         return None, nos  # Profundidade atingida
-
-    visitados.add(estado_str) #adciona o estado atual no conjunto de visitados
+    
     posicao_vazia = estado.index('-')
     movimentos = movimentos_possiveis(estado, posicao_vazia, n) #pega os movimentos possiveis
-
-    print("Movimentos possiveis: ")
-    for s in movimentos:
-        print(s)
 
     for movimento in movimentos:
         #chama recursivamente a função para cada movimento possivel, garantindo que não vai passar do limite de profundidade
@@ -69,27 +65,25 @@ def busca_profundidade_iterativa(estado_inicial, n):
         resultado, total_nos = busca_profundidade_l(total_nos, estado_inicial, profundidade, n)
         if resultado is not None:
             print(f"Solução encontrada na profundidade: {profundidade}")
-            return resultado, total_nos
+            return resultado, total_nos, profundidade
         profundidade += 1
 
 
 #como usar
-n = 2
+n = 10
 estado = estado_inicial(n)
-teste = ['A', 'B', '-', 'B', 'A']
 print("Estado Inicial:", estado)
 
 inicio = time.time()
 tracemalloc.start()
-resposta, quantia_nos = busca_profundidade_iterativa(teste, n)
+resposta, quantia_nos, passos = busca_profundidade_iterativa(estado, n)
 fim = time.time()
 memoria_usada = tracemalloc.get_traced_memory()
 tracemalloc.stop()
 
-
 print("Solução encontrada:", resposta)
 print("Quantidade de nós visitados:", quantia_nos)
+print("Número de passos:", passos)
 print("Tempo de execução:", round(fim - inicio, 4), "segundos")
 print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
-
 
