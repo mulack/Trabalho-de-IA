@@ -92,7 +92,91 @@ def A_star(estado_inicial, n, heuristic):
     return None  # Caso não encontre solução
 
 
-"""
+def A_star_bidirecional(estado_inicial, n, heuristic):
+    estado_final = ['B'] * n + ['-'] + ['A'] * n  # Estado objetivo
+    start = estado_inicial  # Estado inicial
+
+    # Inicializa listas abertas e fechadas para frente e trás
+    open_frente = [(0, start, 0)]
+    open_tras = [(0, estado_final, 0)]
+
+    dicionario_caminho_frente = {}
+    dicionario_caminho_tras = {}
+
+    g_costs_frente = {tuple(start): 0}
+    f_costs_frente = {tuple(start): heuristic(start, estado_final)}
+    
+    g_costs_tras = {tuple(estado_final): 0}
+    f_costs_tras = {tuple(estado_final): heuristic(estado_final, start)}
+
+    while open_frente and open_tras:
+        # Proximo estado frente
+        open_frente.sort(key=lambda x: x[0])
+        f, estado_atual_frente, g = open_frente.pop(0)
+        # Proximo estado tras
+        open_tras.sort(key=lambda x: x[0])
+        f, estado_atual_tras, g = open_tras.pop(0)
+
+
+        #! Verifica se os caminhos se ENCONTRAM
+        movimentos_frente = movimentos_possiveis(estado_atual_frente, estado_atual_frente.index('-'), n)
+        movimentos_tras = movimentos_possiveis(estado_atual_tras, estado_atual_tras.index('-'), n)
+        # Verifica se o ultimo caminho já foi visitado anteriormente
+        visitado_frente = any(tuple(estado) in g_costs_tras for estado in movimentos_frente)
+        visitado_tras = any(tuple(estado) in g_costs_frente for estado in movimentos_tras)
+        # Se bater algum caminho 
+        if visitado_frente or visitado_tras:
+            return reconstruir_caminho(dicionario_caminho_frente, dicionario_caminho_tras, estado_atual_frente, estado_atual_tras)
+
+
+        # Expande a busca para frente
+        posicao_vazia_f = estado_atual_frente.index('-')
+        for movimento in movimentos_possiveis(estado_atual_frente, posicao_vazia_f, n):
+            g_new_frente = g_costs_frente[tuple(estado_atual_frente)] + 1
+            h_new_frente = heuristic(movimento, estado_final)
+            f_new_frente = g_new_frente + h_new_frente
+
+            if (tuple(movimento) not in g_costs_frente) or (g_new_frente < g_costs_frente[tuple(movimento)]):
+                dicionario_caminho_frente[tuple(movimento)] = estado_atual_frente
+                g_costs_frente[tuple(movimento)] = g_new_frente
+                f_costs_frente[tuple(movimento)] = f_new_frente
+                open_frente.append((f_new_frente, movimento, g_new_frente))
+
+        # Expande a busca para trás
+        posicao_vazia_t = estado_atual_tras.index('-')
+        for movimento in movimentos_possiveis(estado_atual_tras, posicao_vazia_t, n):
+            g_new_tras = g_costs_tras[tuple(estado_atual_tras)] + 1
+            h_new_tras = heuristic(movimento, start)
+            f_new_tras = g_new_tras + h_new_tras
+
+            if (tuple(movimento) not in g_costs_tras) or (g_new_tras < g_costs_tras[tuple(movimento)]):
+                dicionario_caminho_tras[tuple(movimento)] = estado_atual_tras
+                g_costs_tras[tuple(movimento)] = g_new_tras
+                f_costs_tras[tuple(movimento)] = f_new_tras
+                open_tras.append((f_new_tras, movimento, g_new_tras))
+
+    return None  # Se não houver solução
+
+def reconstruir_caminho(caminho_frente, caminho_tras, encontro_frente, encontro_tras):
+    # Caminho frente
+    Lista_frente = []
+    while tuple(encontro_frente) in caminho_frente:
+        Lista_frente.append(encontro_frente)
+        encontro_frente = caminho_frente[tuple(encontro_frente)]
+    Lista_frente.reverse()
+
+    # Caminho tras
+    Lista_tras = []
+    while tuple(encontro_tras) in caminho_tras:
+        Lista_tras.append(encontro_tras)
+        encontro_tras = caminho_tras[tuple(encontro_tras)]
+
+    # Combina os dois caminhos
+    return Lista_frente + Lista_tras
+
+
+
+""" A*
 Exemplo de como cada Heuristica funciona
 H1
 [(8, ['A', 'B', 'A', 'B', '-'], 1), 
@@ -104,37 +188,48 @@ h2
 [(7, ['A', 'B', 'B', 'A', '-'], 2), 
 """
 
+""" A* BiDirecional: Não faz sentido usar-lo
+para esse problema, pois ele se perde, são muitas opções
+e se ele se perder no de baixo para cima é dificil de se recuperar.
+!Quando o n é pequeno ele é bom, quando n é grande ele é horrivel
+"""
+
 
 # Como usar
-n = 2  # Número de A's e B's
-estado = estado_inicial(n)
+n = 3  # Número de A's e B's
+teste = estado_inicial(n)
+print("Estado Inicial:", teste)
 
-teste = estado
-print("Estado Inicial:", estado)
 
 
 inicio = time.time();tracemalloc.start()# Início da medição de tempo e memória
 
 resposta_heuristica_1 = A_star(teste, n, heuristic_1)#* Algoritmo A* com a Heurística 1
-print("\nSolução com Heurística 1 (Quantidade de peças fora de posição):")
-print(len(resposta_heuristica_1))
-
 
 fim = time.time();memoria_usada = tracemalloc.get_traced_memory();tracemalloc.stop();# Fim da medição de tempo e memória
-
-print("Tempo de execução:", round(fim - inicio, 4), "segundos")# Exibe os resultados
-print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
+# Exibe os resultados
+print("\nSolução A* com Heurística 1 (Quantidade de peças fora de posição):");print((resposta_heuristica_1))
+print("Tempo de execução:", round(fim - inicio, 4), "segundos");print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
 #!##############
 
 inicio = time.time();tracemalloc.start()# Início da medição de tempo e memória
 
 resposta_heuristica_2 = A_star(teste, n, heuristic_2)#* Algoritmo A* com a Heurística 2 (Distância Manhattan)
-print("\nSolução com Heurística 2 (Distância Manhattan):")
-print(len(resposta_heuristica_2))
 
 fim = time.time();memoria_usada = tracemalloc.get_traced_memory();tracemalloc.stop();# Fim da medição de tempo e memória
+# Exibe os resultados
+print("\nSolução A* com Heurística 2 (Distância Manhattan):");print((resposta_heuristica_2))
+print("Tempo de execução:", round(fim - inicio, 4), "segundos");print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
-print("Tempo de execução:", round(fim - inicio, 4), "segundos")# Exibe os resultados
-print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
+#!############## Com Manhattan
+
+inicio = time.time();tracemalloc.start()# Início da medição de tempo e memória
+
+resposta_heuristica_3 = A_star_bidirecional(teste, n, heuristic_2)#* Algoritmo A* Bidirecional com a Heurística 2 (Distância Manhattan)
+
+fim = time.time();memoria_usada = tracemalloc.get_traced_memory();tracemalloc.stop();# Fim da medição de tempo e memória
+# Exibe os resultados
+print("\nSolução A* BIDIRECIONAL com Heurística 2 (Distância Manhattan):");print((resposta_heuristica_3))
+print("Tempo de execução:", round(fim - inicio, 4), "segundos");print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
