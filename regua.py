@@ -56,40 +56,49 @@ def heuristic_2(state, final):
 
 # A* recebendo qualquer heuristic
 def A_star(estado_inicial, n, heuristic):
-    final = ['B'] * n + ['-'] + ['A'] * n  # GOAL
-    start = estado_inicial  # INICIAL
-    open_list = [(0, start, 0)]  # Lista com (custo, estado, custo heuristica)
+    final = ['B'] * n + ['-'] + ['A'] * n  # Estado objetivo
+    start = estado_inicial  # Estado inicial
+    open_list = [(0, start, 0)]  # Lista de nós abertos (f, estado, g)
     dicionario_caminho = {}
-    g_costs = {tuple(start): 0}  # Dicionario de custos g (Tupla como chave)
-    f_costs = {tuple(start): heuristic(start, final)}  # Dicionario de custos f (g + h)
+    g_costs = {tuple(start): 0}  # Custos g
+    f_costs = {tuple(start): heuristic(start, final)}  # Custos f
+
+    # Contadores
+    nos_expandidos = 0
+    total_sucessores = 0
 
     while open_list:
-        open_list.sort(key=lambda x: x[0])  # Ordena pelo custo f (x[0])
-        f, current_state, g = open_list.pop(0)  # Pega o estado com menor custo f
+        open_list.sort(key=lambda x: x[0])  # Ordena pelo custo f
+        f, current_state, g = open_list.pop(0)  # Remove o nó com menor custo f
+        nos_expandidos += 1  # Incrementa o contador de nós expandidos
+
         if estado_meta(current_state, n):
             path = []
-            while tuple(current_state) in dicionario_caminho:  # Usando tupla como chave no caminho
+            while tuple(current_state) in dicionario_caminho:
                 path.append(current_state)
-                current_state = dicionario_caminho[tuple(current_state)]  # Usando a tupla como chave
+                current_state = dicionario_caminho[tuple(current_state)]
             path.append(estado_inicial)
             path.reverse()
-            return path  # Retorna o caminho para o objetivo
+            fator_ramificacao_medio = total_sucessores / nos_expandidos if nos_expandidos > 0 else 0
+            return path, nos_expandidos, fator_ramificacao_medio  # Retorna o caminho, nós expandidos e fator de ramificação médio
 
-        posicao_vazia = current_state.index('-')  # Pega a posição do espaço vazio
-        movimentos = movimentos_possiveis(current_state, posicao_vazia, n)  #* Pega TODOS os movimentos possiveis
+        posicao_vazia = current_state.index('-')  # Posição do espaço vazio
+        movimentos = movimentos_possiveis(current_state, posicao_vazia, n)  # Sucessores
+        total_sucessores += len(movimentos)  # Conta os sucessores gerados
 
-        for movimento in movimentos:  # Realiza os movimentos 
-            g_new = g_costs[tuple(current_state)] + 1  # Custo g (movimento de custo 1)
-            h_new = heuristic(movimento, final)  # Pega o heurístico
-            f_new = g_new + h_new  # Custo f
+        for movimento in movimentos:
+            g_new = g_costs[tuple(current_state)] + 1
+            h_new = heuristic(movimento, final)
+            f_new = g_new + h_new
 
             if (tuple(movimento) not in g_costs) or (g_new < g_costs[tuple(movimento)]):
                 dicionario_caminho[tuple(movimento)] = current_state
                 g_costs[tuple(movimento)] = g_new
                 f_costs[tuple(movimento)] = f_new
-                open_list.append((f_new, movimento, g_new))  # adiciona o novo estado
+                open_list.append((f_new, movimento, g_new))
 
-    return None  # Caso não encontre solução
+    return None, nos_expandidos, 0  # Caso não encontre solução
+
 
 
 def A_star_bidirecional(estado_inicial, n, heuristic):
