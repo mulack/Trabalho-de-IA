@@ -12,7 +12,8 @@ def estado_inicial(n):
 
 #verifica se o estado é o estado meta
 def estado_meta(estado, n):
-    return estado == ['B'] * n + ['-'] + ['A'] * n
+    estado_aux = [x for x in estado if x != '-'] #para verificar se o estado é meta sem o "-" interferir
+    return estado_aux == ['B'] * n + ['A'] * n
 
 #retorna os movimentos possiveis
 def movimentos_possiveis(estado, posicao_vazia, n):
