@@ -11,7 +11,8 @@ def estado_inicial(n):
 
 #verifica se o estado é o estado meta
 def estado_meta(estado, n):
-    return estado == ['B'] * n + ['-'] + ['A'] * n
+    estado_aux = [x for x in estado if x != '-'] #para verificar se o estado é meta sem o "-" interferir
+    return estado_aux == ['B'] * n + ['A'] * n
 
 #retorna os movimentos possiveis
 def movimentos_possiveis(estado, posicao_vazia, n):
@@ -86,16 +87,16 @@ def busca_profundidade(nos, estado, profundidade_maxima, n, nos_fronteira, nao_f
 
     estado_str = ''.join(estado)
     if estado_str in visitados:
-        return None, nos, nos_fronteira, nao_folha  # Para não repetir estados que ja foram visitados
+        return None, len(visitados), nos_fronteira, nao_folha  # Para não repetir estados que ja foram visitados
 
     nos += 1 #adciona 1 no contador de nos
     visitados.add(estado_str) #adciona o estado atual no conjunto de visitados
 
     if estado_meta(estado, n):
-        return estado, nos, nos_fronteira, nao_folha # Verirfica se é meta
+        return estado, len(visitados), nos_fronteira, nao_folha # Verirfica se é meta
 
     if profundidade_maxima == 0: 
-        return None, nos, nos_fronteira, nao_folha  # Profundidade atingida
+        return None, len(visitados), nos_fronteira, nao_folha  # Profundidade atingida
     
     posicao_vazia = estado.index('-')
     movimentos = movimentos_possiveis(estado, posicao_vazia, n) #pega os movimentos possiveis
@@ -108,9 +109,9 @@ def busca_profundidade(nos, estado, profundidade_maxima, n, nos_fronteira, nao_f
         #chama recursivamente a função para cada movimento possivel, garantindo que não vai passar do limite de profundidade
         resultado, nos, nos_fronteira, nao_folha = busca_profundidade(nos, movimento, profundidade_maxima - 1, n, nos_fronteira, nao_folha, visitados)
         if resultado is not None:
-            return resultado, nos, nos_fronteira, nao_folha
+            return resultado, len(visitados), nos_fronteira, nao_folha
 
-    return None, nos, nos_fronteira, nao_folha
+    return None, len(visitados), nos_fronteira, nao_folha
 
 def busca_profundidade_iterativa(estado_inicial, n):
     #profundidade inicial do loop, para setar valores
@@ -273,6 +274,7 @@ n = int(input("Digite a quantidade de blocos azuis e brancos (N): "))
 estado = estado_inicial(n)
 print("Estado Inicial:", estado)
 
+"""
 #busca em largura
 inicio1 = time.time()
 tracemalloc.start()
@@ -288,7 +290,9 @@ print("Número de passos:", passos)
 print("Tempo de execução:", round(fim1 - inicio1, 4), "segundos")
 print(f"Memória usada: {memoria_usada1[1] / 1024:.2f} KB")
 
+"""
 # busca um profundidade iterativa
+
 inicio = time.time()
 tracemalloc.start()
 resposta, quantia_nos, passos, fator_ramificacao, fronteira = busca_profundidade_iterativa(estado, n)
