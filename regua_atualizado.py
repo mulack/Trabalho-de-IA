@@ -52,7 +52,7 @@ def heuristic_2(state, final):
             total_dist += abs(i - target_index)
     return total_dist
 
-
+#BUSCA EM LARGURA
 def busca_largura(estado_inicial, n):
     if estado_meta(estado_inicial, n):
         return estado_inicial, 0, [estado_inicial]
@@ -78,33 +78,39 @@ def busca_largura(estado_inicial, n):
 
     return None, -1, []  
 
-def busca_profundidade_l(nos, estado, profundidade_maxima, n, visitados=None):
+#BUSCA EM PROFUNDIDADE ITERATIVA
+def busca_profundidade(nos, estado, profundidade_maxima, n, nos_fronteira, nao_folha, visitados=None):
     #print("Visitando: ", estado)
     if visitados is None: #primeira vez que a função é chamada, cria o conjunto de visitados
         visitados = set()
 
     estado_str = ''.join(estado)
     if estado_str in visitados:
-        return None, nos  # Para não repetir estados que ja foram visitados
-    
+        return None, nos, nos_fronteira, nao_folha  # Para não repetir estados que ja foram visitados
+
     nos += 1 #adciona 1 no contador de nos
     visitados.add(estado_str) #adciona o estado atual no conjunto de visitados
-    if estado_meta(estado, n):
-        return estado, nos # Verirfica se é meta
 
-    if profundidade_maxima == 0:
-        return None, nos  # Profundidade atingida
+    if estado_meta(estado, n):
+        return estado, nos, nos_fronteira, nao_folha # Verirfica se é meta
+
+    if profundidade_maxima == 0: 
+        return None, nos, nos_fronteira, nao_folha  # Profundidade atingida
     
     posicao_vazia = estado.index('-')
     movimentos = movimentos_possiveis(estado, posicao_vazia, n) #pega os movimentos possiveis
+    if movimentos and profundidade_maxima > 0:
+        nao_folha += 1 #adciona 1 no contador de nao_folha
+
+    nos_fronteira += len(movimentos) if profundidade_maxima > 0 else 0 #adciona 1 no contador de nos_fronteira
 
     for movimento in movimentos:
         #chama recursivamente a função para cada movimento possivel, garantindo que não vai passar do limite de profundidade
-        resultado, nos = busca_profundidade_l(nos, movimento, profundidade_maxima - 1, n, visitados)
+        resultado, nos, nos_fronteira, nao_folha = busca_profundidade(nos, movimento, profundidade_maxima - 1, n, nos_fronteira, nao_folha, visitados)
         if resultado is not None:
-            return resultado, nos
+            return resultado, nos, nos_fronteira, nao_folha
 
-    return None, nos
+    return None, nos, nos_fronteira, nao_folha
 
 def busca_profundidade_iterativa(estado_inicial, n):
     #profundidade inicial do loop, para setar valores
@@ -112,10 +118,13 @@ def busca_profundidade_iterativa(estado_inicial, n):
     while True:
         #print(f"Tentando profundidade: {profundidade}")
         total_nos = 0
-        resultado, total_nos = busca_profundidade_l(total_nos, estado_inicial, profundidade, n)
+        nos_fronteira = 1
+        nao_folha = 0
+        resultado, total_nos, nos_fronteira, nao_folha = busca_profundidade(total_nos, estado_inicial, profundidade, n, nos_fronteira, nao_folha)
         if resultado is not None:
-            print(f"Solução encontrada na profundidade: {profundidade}")
-            return resultado, total_nos, profundidade
+            #print(f"Solução encontrada na profundidade: {profundidade}")
+            fator_ramificacao = (total_nos - 1) / nao_folha if nao_folha > 0 else 0 #calcula o fator de ramificação medio 
+            return resultado, total_nos, profundidade, fator_ramificacao, nos_fronteira
         profundidade += 1
 
 # A* 
@@ -259,26 +268,10 @@ def reconstruir_caminho(caminho_frente, caminho_tras, encontro_frente, encontro_
     # Combina os dois caminhos
     return Lista_frente + Lista_tras
 
-
-#como usar
+# como usar
 n = int(input("Digite a quantidade de blocos azuis e brancos (N): "))
 estado = estado_inicial(n)
 print("Estado Inicial:", estado)
-
-inicio = time.time()
-tracemalloc.start()
-resposta, quantia_nos, passos = busca_profundidade_iterativa(estado, n)
-fim = time.time()
-memoria_usada = tracemalloc.get_traced_memory()
-tracemalloc.stop()
-
-print("\n")
-print("------------------BUSCA EM PROFUNDIDADE ITERATIVA--------------------------------")
-print("Solução encontrada:", resposta)
-print("Quantidade de nós visitados:", quantia_nos)
-print("Número de passos:", passos)
-print("Tempo de execução:", round(fim - inicio, 4), "segundos")
-print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
 #busca em largura
 inicio1 = time.time()
@@ -294,6 +287,24 @@ print("Profundidade:", profundidade)
 print("Número de passos:", passos)
 print("Tempo de execução:", round(fim1 - inicio1, 4), "segundos")
 print(f"Memória usada: {memoria_usada1[1] / 1024:.2f} KB")
+
+# busca um profundidade iterativa
+inicio = time.time()
+tracemalloc.start()
+resposta, quantia_nos, passos, fator_ramificacao, fronteira = busca_profundidade_iterativa(estado, n)
+fim = time.time()
+memoria_usada = tracemalloc.get_traced_memory()
+tracemalloc.stop()
+
+
+print("------------------BUSCA EM PROFUNDIDADE ITERATIVA--------------------------------")
+print("Solução encontrada:", resposta)
+print("Quantidade de nós visitados:", quantia_nos)
+print("Quantidade de nós na fronteira:", fronteira)
+print("Número de passos:", passos)
+print("Fator de ramificação:", fator_ramificacao)
+print("Tempo de execução:", round(fim - inicio, 4), "segundos")
+print(f"Memória usada: {memoria_usada[1] / 1024:.2f} KB")
 
 #busca A*
 # Euristica 1
