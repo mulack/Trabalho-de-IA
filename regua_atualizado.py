@@ -274,7 +274,6 @@ n = int(input("Digite a quantidade de blocos azuis e brancos (N): "))
 estado = estado_inicial(n)
 print("Estado Inicial:", estado)
 
-"""
 #busca em largura
 inicio1 = time.time()
 tracemalloc.start()
@@ -290,7 +289,6 @@ print("Número de passos:", passos)
 print("Tempo de execução:", round(fim1 - inicio1, 4), "segundos")
 print(f"Memória usada: {memoria_usada1[1] / 1024:.2f} KB")
 
-"""
 # busca um profundidade iterativa
 
 inicio = time.time()
